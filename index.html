@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Your Song">
+    <title>Your Song</title>
+    <style>
+        /* ========== 基礎設定 ========== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            /* 深色浪漫系配色 */
+            --bg-gradient-start: #1a1625;
+            --bg-gradient-mid: #2d2438;
+            --bg-gradient-end: #3d2f4a;
+            --card-bg: rgba(255, 255, 255, 0.03);
+            --card-border: rgba(255, 255, 255, 0.08);
+            --text-primary: #f5f1ed;
+            --text-secondary: #c4b8ae;
+            --text-tertiary: #9a8d82;
+            --accent: #e8d5c4;
+            --accent-glow: rgba(232, 213, 196, 0.15);
+            --divider: rgba(232, 213, 196, 0.2);
+        }
+
+        @media (prefers-color-scheme: light) {
+            :root {
+                --bg-gradient-start: #faf8f6;
+                --bg-gradient-mid: #f5f0eb;
+                --bg-gradient-end: #ede4dc;
+                --card-bg: rgba(255, 255, 255, 0.7);
+                --card-border: rgba(0, 0, 0, 0.06);
+                --text-primary: #2d2520;
+                --text-secondary: #5a4e42;
+                --text-tertiary: #8a7d70;
+                --accent: #9d7e63;
+                --accent-glow: rgba(157, 126, 99, 0.1);
+                --divider: rgba(157, 126, 99, 0.25);
+            }
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI",
+                         "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+            background: linear-gradient(135deg,
+                var(--bg-gradient-start) 0%,
+                var(--bg-gradient-mid) 50%,
+                var(--bg-gradient-end) 100%);
+            background-attachment: fixed;
+            color: var(--text-primary);
+            line-height: 1.7;
+            min-height: 100vh;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        /* 柔和光暈背景效果 */
+        body::before {
+            content: '';
+            position: fixed;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle at 30% 20%, var(--accent-glow) 0%, transparent 50%),
+                        radial-gradient(circle at 70% 80%, var(--accent-glow) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* ========== 進度指示器 ========== */
+        .progress-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 0%;
+            height: 2px;
+            background: linear-gradient(90deg, var(--accent), var(--accent-glow));
+            z-index: 1000;
+            transition: width 0.1s ease-out;
+        }
+
+        .scroll-indicator {
+            position: fixed;
+            top: 16px;
+            right: 16px;
+            font-size: 11px;
+            color: var(--text-tertiary);
+            font-weight: 500;
+            letter-spacing: 0.5px;
+            z-index: 999;
+            opacity: 0.6;
+            transition: opacity 0.3s ease;
+        }
+
+        .scroll-indicator:hover {
+            opacity: 1;
+        }
+
+        /* ========== 主容器 ========== */
+        .container {
+            max-width: 480px;
+            margin: 0 auto;
+            padding: 40px 24px 60px;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* ========== 玻璃擬態卡片 ========== */
+        .card {
+            background: var(--card-bg);
+            backdrop-filter: blur(20px) saturate(150%);
+            -webkit-backdrop-filter: blur(20px) saturate(150%);
+            border: 1px solid var(--card-border);
+            border-radius: 24px;
+            padding: 48px 32px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12),
+                        0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+
+        /* ========== 標題區 ========== */
+        header {
+            text-align: center;
+            margin-bottom: 48px;
+        }
+
+        .intro {
+            font-size: 14px;
+            color: var(--text-tertiary);
+            margin-bottom: 24px;
+            line-height: 1.8;
+            font-weight: 400;
+        }
+
+        h1 {
+            font-size: 36px;
+            font-weight: 600;
+            letter-spacing: -0.5px;
+            margin-bottom: 12px;
+            color: var(--accent);
+            text-shadow: 0 2px 12px var(--accent-glow);
+        }
+
+        .subtitle {
+            font-size: 16px;
+            color: var(--accent);
+            font-weight: 500;
+            letter-spacing: 1.5px;
+            opacity: 1;
+            margin-top: 16px;
+            text-shadow: 0 1px 8px var(--accent-glow);
+        }
+
+        .divider {
+            width: 60px;
+            height: 1px;
+            background: var(--divider);
+            margin: 32px auto;
+        }
+
+        /* ========== 歌詞區塊 ========== */
+        .lyrics-container {
+            margin-top: 40px;
+        }
+
+        .lyric-block {
+            margin-bottom: 32px;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+        }
+
+        .lyric-block.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* 重點段落（副歌）樣式 */
+        .lyric-block.chorus {
+            position: relative;
+            padding-left: 16px;
+            border-left: 2px solid var(--divider);
+        }
+
+        .lyric-en {
+            font-size: 16px;
+            font-weight: 500;
+            color: var(--text-primary);
+            margin-bottom: 6px;
+            line-height: 1.6;
+            letter-spacing: 0.2px;
+        }
+
+        .lyric-zh {
+            font-size: 14px;
+            font-weight: 400;
+            color: var(--text-secondary);
+            line-height: 1.7;
+            letter-spacing: 0.3px;
+        }
+
+        /* ========== 頁尾 ========== */
+        footer {
+            margin-top: 60px;
+            text-align: center;
+            padding-top: 32px;
+            border-top: 1px solid var(--divider);
+        }
+
+        footer p {
+            font-size: 12px;
+            color: var(--text-tertiary);
+            line-height: 1.8;
+        }
+
+        /* ========== 響應式（桌機） ========== */
+        @media (min-width: 768px) {
+            .container {
+                padding: 80px 40px 100px;
+            }
+
+            .card {
+                padding: 64px 48px;
+            }
+
+            h1 {
+                font-size: 42px;
+            }
+
+            .lyric-en {
+                font-size: 17px;
+            }
+
+            .lyric-zh {
+                font-size: 15px;
+            }
+        }
+
+        /* ========== 列印樣式 ========== */
+        @media print {
+            body {
+                background: #ffffff;
+                color: #000000;
+            }
+
+            body::before {
+                display: none;
+            }
+
+            .progress-bar,
+            .scroll-indicator {
+                display: none;
+            }
+
+            .card {
+                background: #ffffff;
+                border: 1px solid #e0e0e0;
+                box-shadow: none;
+                page-break-inside: avoid;
+            }
+
+            h1 {
+                color: #333333;
+                text-shadow: none;
+            }
+
+            .lyric-en {
+                color: #000000;
+            }
+
+            .lyric-zh {
+                color: #555555;
+            }
+
+            .lyric-block {
+                opacity: 1;
+                transform: none;
+                page-break-inside: avoid;
+            }
+        }
+
+        /* ========== 無障礙 ========== */
+        @media (prefers-reduced-motion: reduce) {
+            *,
+            *::before,
+            *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+
+        /* 聚焦樣式 */
+        *:focus-visible {
+            outline: 2px solid var(--accent);
+            outline-offset: 4px;
+        }
+    </style>
+</head>
+<body>
+    <!-- 進度條 -->
+    <div class="progress-bar" role="progressbar" aria-label="閱讀進度" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+    <div class="scroll-indicator" aria-live="polite" aria-atomic="true">0%</div>
+
+    <!-- 主容器 -->
+    <div class="container">
+        <main class="card">
+            <!-- 標題區 -->
+            <header>
+                <h1>Your Song</h1>
+                <p class="subtitle">20260118給欣芸</p>
+                <div class="divider" role="separator"></div>
+            </header>
+
+            <!-- 歌詞區 -->
+            <section class="lyrics-container" aria-label="歌詞內容">
+                <!-- 由 JavaScript 動態生成 -->
+            </section>
+        </main>
+    </div>
+
+    <script>
+        // ========== 歌詞資料 ==========
+        const lyrics = [
+            { en: "It's a little bit funny this feeling inside", zh: "心裡這份感覺，有點說不上來的好笑" },
+            { en: "I'm not one of those who can easily hide", zh: "我不是那種能輕易把情緒藏起來的人" },
+            { en: "I don't have much money but girl if I did", zh: "我沒有多少錢，但 女孩啊，如果我有的話" },
+            { en: "I'd buy a big house where we both could live", zh: "我會買棟大房子，讓我們一起住在裡面" },
+            { en: "If I was a sculptor, but then again, no", zh: "如果我是個雕刻家──不過，想想還是不是" },
+            { en: "Or a man who makes potions in a travelling show", zh: "又或者是個在巡迴表演裡調配藥水的魔術師" },
+            { en: "I know it's not much but it's the best I can do", zh: "我知道這不算什麼，但已是我能給的全部" },
+            { en: "My gift is my song and this one's for you", zh: "我的禮物就是這首歌，而它是為你而寫" },
+            { en: "And you can tell everybody this is your song", zh: "你可以告訴所有人，這是屬於你的歌", chorus: true },
+            { en: "It may be quite simple but now that it's done", zh: "也許它很簡單，但它已經完成了", chorus: true },
+            { en: "I hope you don't mind", zh: "希望你不會介意", chorus: true },
+            { en: "I hope you don't mind that I put down in words", zh: "希望你不介意，我把這一切寫成文字", chorus: true },
+            { en: "How wonderful life is while you're in the world", zh: "因為有你在，生命是如此美好", chorus: true },
+            { en: "I sat on the roof and kicked off the moss", zh: "我坐在屋頂上，把青苔踢落" },
+            { en: "Well a few of the verses, well they've got me quite cross", zh: "有幾段歌詞，老實說，真的讓我有點煩躁" },
+            { en: "But the sun's been quite kind while I wrote this song", zh: "但在我寫這首歌時，陽光卻格外溫柔" },
+            { en: "It's for people like you that keep it turned on", zh: "是像你這樣的人，讓世界一直亮著" },
+            { en: "So excuse me forgetting but these things I do", zh: "所以請原諒我健忘，這就是我的樣子" },
+            { en: "You see I've forgotten if they're green or they're blue", zh: "你看，我甚至忘了它們是綠的還是藍的" },
+            { en: "Anyway the thing is what I really mean", zh: "但不管怎樣，我真正想說的是" },
+            { en: "Yours are the sweetest eyes I've ever seen", zh: "你的眼睛，是我見過最溫柔的一雙" },
+            { en: "And you can tell everybody this is your song", zh: "你可以告訴所有人，這是你的歌", chorus: true },
+            { en: "It may be quite simple but now that it's done", zh: "也許它很簡單，但它已經完成了", chorus: true },
+            { en: "I hope you don't mind", zh: "希望你不會介意", chorus: true },
+            { en: "I hope you don't mind that I put down in words", zh: "希望你不介意，我把心意寫成文字", chorus: true },
+            { en: "How wonderful life is while you're in the world", zh: "因為有你在，生命是如此美好", chorus: true },
+            { en: "I hope you don't mind", zh: "希望你不會介意", chorus: true },
+            { en: "I hope you don't mind that I put down in words", zh: "希望你不介意，我把心意寫成文字", chorus: true },
+            { en: "How wonderful life is while you're in the world", zh: "因為有你在，生命是如此美好", chorus: true }
+        ];
+
+        // ========== 渲染歌詞 ==========
+        const lyricsContainer = document.querySelector('.lyrics-container');
+
+        lyrics.forEach((lyric, index) => {
+            const block = document.createElement('div');
+            block.className = 'lyric-block' + (lyric.chorus ? ' chorus' : '');
+            block.setAttribute('data-index', index);
+
+            const enLine = document.createElement('p');
+            enLine.className = 'lyric-en';
+            enLine.textContent = lyric.en;
+
+            const zhLine = document.createElement('p');
+            zhLine.className = 'lyric-zh';
+            zhLine.textContent = lyric.zh;
+
+            block.appendChild(enLine);
+            block.appendChild(zhLine);
+            lyricsContainer.appendChild(block);
+        });
+
+        // ========== 滾動動畫 ==========
+        const observerOptions = {
+            threshold: 0.15,
+            rootMargin: '0px 0px -50px 0px'
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                }
+            });
+        }, observerOptions);
+
+        document.querySelectorAll('.lyric-block').forEach(block => {
+            observer.observe(block);
+        });
+
+        // ========== 進度指示器 ==========
+        const progressBar = document.querySelector('.progress-bar');
+        const scrollIndicator = document.querySelector('.scroll-indicator');
+
+        function updateProgress() {
+            const windowHeight = window.innerHeight;
+            const documentHeight = document.documentElement.scrollHeight;
+            const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+            const scrollPercent = (scrollTop / (documentHeight - windowHeight)) * 100;
+            const clampedPercent = Math.min(Math.max(scrollPercent, 0), 100);
+
+            progressBar.style.width = clampedPercent + '%';
+            progressBar.setAttribute('aria-valuenow', Math.round(clampedPercent));
+            scrollIndicator.textContent = Math.round(clampedPercent) + '%';
+        }
+
+        window.addEventListener('scroll', updateProgress, { passive: true });
+        window.addEventListener('resize', updateProgress, { passive: true });
+        updateProgress();
+
+        // ========== 初始化：第一段立即顯示 ==========
+        window.addEventListener('load', () => {
+            const firstBlock = document.querySelector('.lyric-block');
+            if (firstBlock) {
+                firstBlock.classList.add('visible');
+            }
+        });
+    </script>
+</body>
+</html>
